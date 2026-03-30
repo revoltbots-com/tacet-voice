@@ -90,8 +90,22 @@ class SettingsDialog(ctk.CTkToplevel):
 
         self.model_var = ctk.StringVar(value=self.config.get('local', {}).get('model', 'tiny'))
         models = ['tiny', 'base', 'small', 'medium', 'large']
-        self.model_menu = ctk.CTkOptionMenu(tab, values=models, variable=self.model_var)
+        self.model_menu = ctk.CTkOptionMenu(
+            tab, values=models, variable=self.model_var,
+            command=self._on_model_change
+        )
         self.model_menu.pack(pady=5, anchor="w", padx=20)
+
+        # Model warning label (hidden by default)
+        self.model_warning = ctk.CTkLabel(
+            tab,
+            text="",
+            font=("Arial", 10),
+            text_color="orange",
+            wraplength=450
+        )
+        self.model_warning.pack(pady=(0, 5), anchor="w", padx=20)
+        self._update_model_warning(self.model_var.get())
 
         # Language
         ctk.CTkLabel(tab, text=_translator.t('settings.language_label'),
@@ -217,6 +231,22 @@ class SettingsDialog(ctk.CTkToplevel):
             hover_color="blue"
         ).pack(pady=5, anchor="w", padx=20)
 
+    def _on_model_change(self, value):
+        """Handle model selection change"""
+        self._update_model_warning(value)
+
+    def _update_model_warning(self, model_name):
+        """Show/hide performance warning based on model and device"""
+        device = self.config.get('local', {}).get('device', 'cpu')
+        slow_models = {'medium', 'large'}
+        if model_name in slow_models and device == 'cpu':
+            self.model_warning.configure(
+                text=f"'{model_name}' on CPU may be too slow for real-time dictation. "
+                     f"Consider 'tiny' or 'base' for CPU, or use CUDA for larger models."
+            )
+        else:
+            self.model_warning.configure(text="")
+
     def _open_voice_commands(self):
         """Open Voice Commands editor dialog"""
         VoiceCommandsDialog(self.parent)
@@ -260,10 +290,28 @@ class SettingsDialog(ctk.CTkToplevel):
         self.config['clipboard']['enabled'] = self.clipboard_var.get()
         self.config['hotkey'] = self.hotkey_entry.get()
 
-        # Apply to engine
+        requested_model = self.model_var.get()
+
+        # Preserve sub-dialog changes (word replacements, voice commands, templates)
+        # that may have been saved directly to the engine while this dialog was open.
+        for key in ('word_replacements', 'voice_commands', 'templates'):
+            if key in self.engine.config:
+                self.config[key] = self.engine.config[key]
+
+        # Apply to engine (may revert model on failure)
         self.engine.update_config(self.config)
 
-        # Show success message
-        messagebox.showinfo(_translator.t('settings.success_title'),
-                           _translator.t('settings.success_message'))
+        # Check if model was reverted due to load failure
+        actual_model = self.engine.config.get('local', {}).get('model', requested_model)
+        if actual_model != requested_model:
+            messagebox.showwarning(
+                _translator.t('settings.success_title'),
+                f"Failed to load model '{requested_model}'. "
+                f"Reverted to '{actual_model}'.\n\n"
+                f"Larger models may require more RAM or GPU (CUDA) support."
+            )
+        else:
+            messagebox.showinfo(_translator.t('settings.success_title'),
+                               _translator.t('settings.success_message'))
+
         self.destroy()

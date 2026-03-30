@@ -39,8 +39,17 @@ class TextReplacementProcessor:
         Returns:
             Text with replacements applied
         """
-        if not self.enabled or not text or not self.replacements:
+        if not self.enabled:
+            print(f"[REPL] SKIP: disabled")
             return text
+        if not text:
+            print(f"[REPL] SKIP: empty text")
+            return text
+        if not self.replacements:
+            print(f"[REPL] SKIP: no replacements loaded")
+            return text
+
+        print(f"[REPL] Processing: '{text.strip()}' against {len(self.replacements)} rules")
 
         # Apply each replacement
         for find_text, replace_text in self.replacements.items():

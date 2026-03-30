@@ -410,6 +410,7 @@ class TranscriptionGUI(ctk.CTk):
             "idle": (_translator.t('main_window.status_idle'), "gray"),
             "listening": (_translator.t('main_window.status_listening'), "green"),
             "transcribing": (_translator.t('main_window.status_transcribing'), "blue"),
+            "loading": (_translator.t('main_window.status_loading') if _translator.t('main_window.status_loading') != 'main_window.status_loading' else "Loading model...", "orange"),
         }
 
         text, color = status_map.get(status, ("Unknown", "gray"))

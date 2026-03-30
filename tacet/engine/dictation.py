@@ -91,9 +91,10 @@ class DictationEngine:
         self.voice_processor = VoiceCommandProcessor(voice_commands_cfg)
 
         # Initialize text replacement processor
-        self.replacement_processor = TextReplacementProcessor(
-            self._build_replacements_config(self.config)
-        )
+        repl_cfg = self._build_replacements_config(self.config)
+        self._log(f"Replacement config: enabled={repl_cfg.get('enabled')}, "
+                  f"count={len(repl_cfg.get('replacements', {}))}")
+        self.replacement_processor = TextReplacementProcessor(repl_cfg)
 
         # Initialize usage stats tracker
         here = os.path.dirname(os.path.abspath(config_path))
@@ -180,6 +181,7 @@ class DictationEngine:
         self.current_seq = 0
         self.applied_seq = 0
         self.preview_len = 0
+        self._last_preview_text = ""
 
         # Queues
         self.audio_q: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=600)
@@ -305,6 +307,7 @@ class DictationEngine:
             backspace(self.kb, self.preview_len)
         self._safe_type(new_text)
         self.preview_len = len(new_text)
+        self._last_preview_text = new_text
 
         # Also update UI
         self._call_callback('on_preview_update', new_text)
@@ -333,9 +336,13 @@ class DictationEngine:
         out = self.auto_punct_processor.process_text(out)
 
         # Apply custom word replacements (last step)
+        before_repl = out
         out = self.replacement_processor.process_text(out)
+        if out != before_repl:
+            self._log(f"Replacement: '{before_repl.strip()}' -> '{out.strip()}'")
 
         self._safe_type(out)
+        self._last_preview_text = ""
 
         # Copy to clipboard if enabled
         if self.clipboard_enabled:
@@ -532,6 +539,8 @@ class DictationEngine:
                                     utt_id = self.current_utt_id
                                     self.current_seq += 1
                                     seq = self.current_seq
+                                # Clear preview tracking — the worker will commit final
+                                self._last_preview_text = ""
                                 self.tx_q.put((utt_id, seq, True, wav))
 
             self.audio_q.task_done()
@@ -563,11 +572,16 @@ class DictationEngine:
             self.listening.clear()
             self.last_toggle_time = time.time()
 
+            # Commit any pending preview as final text so replacements run
+            if self._last_preview_text:
+                self._log("Committing pending preview on stop")
+                self._commit_final_text(self._last_preview_text)
+
             # Reset session tracking for next session
             self.session_text_buffer = []
             self.session_start_time = None
 
-            self._log(f"🛑 Dictation stopped ({reason}).")
+            self._log(f"Dictation stopped ({reason}).")
             self._call_callback('on_status_change', 'idle')
 
     def start_listening(self):
@@ -662,7 +676,6 @@ class DictationEngine:
         previous_model = self.local_cfg.get("model") if hasattr(self, "local_cfg") else None
 
         self.config = new_config
-        self._save_config()
 
         self.local_cfg = new_config.get("local", self.local_cfg)
         self.openai_cfg = new_config.get("openai", getattr(self, "openai_cfg", {}))
@@ -695,15 +708,27 @@ class DictationEngine:
         self.template_processor = TemplateProcessor(new_config.get("templates", {}))
 
         # Reload text replacement processor with the updated config
-        self.replacement_processor = TextReplacementProcessor(
-            self._build_replacements_config(new_config)
-        )
+        repl_cfg = self._build_replacements_config(new_config)
+        self._log(f"Replacement config: enabled={repl_cfg.get('enabled')}, "
+                  f"count={len(repl_cfg.get('replacements', {}))}")
+        self.replacement_processor = TextReplacementProcessor(repl_cfg)
 
         here = os.path.dirname(os.path.abspath(self.config_path))
         self.session_history = SessionHistoryManager(new_config.get("session_history", {}), here)
 
-        if self.local_engine and self.local_cfg.get("model", previous_model) != previous_model:
-            self.reload_model(self.local_cfg.get("model", previous_model))
+        # Attempt model reload BEFORE saving config to disk.
+        # If reload fails, revert the model in config so we don't persist a broken state.
+        new_model = self.local_cfg.get("model", previous_model)
+        if self.local_engine and new_model != previous_model:
+            try:
+                self.reload_model(new_model)
+            except Exception:
+                # Revert model in config so the saved file keeps the working model
+                self._log(f"Model reload failed, reverting to: {previous_model}")
+                self.local_cfg["model"] = previous_model
+                new_config["local"]["model"] = previous_model
+
+        self._save_config()
 
         if self.stop_on_any_keypress and not prev_stop_on_any_keypress:
             keyboard.Listener(on_press=self._on_keypress, suppress=False).start()
@@ -711,7 +736,11 @@ class DictationEngine:
         self._log("Configuration updated")
 
     def reload_model(self, model_name: str):
-        """Reload the model (for local engine only)"""
+        """Reload the model (for local engine only).
+
+        Raises on failure so the caller can revert config.
+        The old local_engine is preserved if the new one fails to load.
+        """
         if self.local_engine is None:
             return
 
@@ -723,14 +752,13 @@ class DictationEngine:
             self._log(f"Loading model: {model_name} ...")
             self._call_callback('on_status_change', 'loading')
 
-            self.local_engine = LocalEngine(
+            new_engine = LocalEngine(
                 model_name=model_name,
                 device=self.local_cfg.get("device", "cpu"),
                 compute_type=self.local_cfg.get("compute_type", "int8"),
             )
-
-            self.config['local']['model'] = model_name
-            self._save_config()
+            # Only replace engine on success
+            self.local_engine = new_engine
 
             self._log(f"Model loaded: {model_name}")
             self._call_callback('on_status_change', 'idle')
@@ -740,7 +768,7 @@ class DictationEngine:
 
         except Exception as e:
             self._log(f"Failed to load model: {repr(e)}")
-            self._call_callback('on_error', f"Failed to load model: {repr(e)}")
+            self._call_callback('on_error', f"Failed to load model {model_name}: {repr(e)}")
             self._call_callback('on_status_change', 'idle')
             raise
 
