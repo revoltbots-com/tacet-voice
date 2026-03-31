@@ -91,8 +91,9 @@ class DictationEngine:
         self.voice_processor = VoiceCommandProcessor(voice_commands_cfg)
 
         # Initialize text replacement processor
-        replacements_cfg = self.config.get("custom_replacements", {})
-        self.replacement_processor = TextReplacementProcessor(replacements_cfg)
+        self.replacement_processor = TextReplacementProcessor(
+            self._build_replacements_config(self.config)
+        )
 
         # Initialize usage stats tracker
         here = os.path.dirname(os.path.abspath(config_path))
@@ -200,6 +201,32 @@ class DictationEngine:
 
         self._log(f"Engine initialized [{engine_name}]")
         self._call_callback('on_status_change', 'idle')
+
+    @staticmethod
+    def _build_replacements_config(config: dict) -> dict:
+        """
+        Build a flat TextReplacementProcessor-compatible config from the
+        ``word_replacements`` section (written by the GUI).  Falls back to
+        ``custom_replacements`` when ``word_replacements`` is absent so that
+        existing hand-edited configs keep working.
+        """
+        word_repl = config.get("word_replacements")
+        if word_repl is not None:
+            # New GUI format: merge all enabled language dictionaries
+            enabled = bool(word_repl.get("enabled", True))
+            case_sensitive = bool(word_repl.get("case_sensitive", False))
+            merged: dict = {}
+            for lang_dict in word_repl.get("dictionaries", {}).values():
+                if lang_dict.get("enabled", False):
+                    merged.update(lang_dict.get("replacements", {}))
+            return {
+                "enabled": enabled,
+                "case_sensitive": case_sensitive,
+                "replacements": merged,
+            }
+
+        # Legacy fallback
+        return config.get("custom_replacements", {})
 
     def _log(self, message: str):
         """Internal logging"""
@@ -642,6 +669,11 @@ class DictationEngine:
         self.energy_threshold = float(cont_cfg.get("energy_threshold", 0.003))
         self.preroll_ms = int(cont_cfg.get("preroll_ms", 250))
         self.update_interval_ms = int(live_cfg.get("update_interval_ms", 900))
+
+        # Reload text replacement processor with the updated config
+        self.replacement_processor = TextReplacementProcessor(
+            self._build_replacements_config(new_config)
+        )
 
         self._log("Configuration updated")
 

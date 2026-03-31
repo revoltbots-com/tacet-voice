@@ -24,7 +24,7 @@ class SessionHistoryDialog(ctk.CTkToplevel):
         self.parent = parent
         self.restore_callback = restore_callback
 
-        self.title(_translator.t('session_history.dialog_title'))
+        self.title(_translator.t('session_history_dialog.title'))
         self.geometry("700x500")
         self.resizable(True, True)
 
@@ -39,7 +39,7 @@ class SessionHistoryDialog(ctk.CTkToplevel):
         # Title
         ctk.CTkLabel(
             main_frame,
-            text=_translator.t('session_history.title'),
+            text=_translator.t('session_history_dialog.title'),
             font=("Arial", 16, "bold")
         ).pack(pady=(0, 15))
 
@@ -55,7 +55,7 @@ class SessionHistoryDialog(ctk.CTkToplevel):
         else:
             ctk.CTkLabel(
                 scroll_frame,
-                text=_translator.t('session_history.no_sessions'),
+                text=_translator.t('session_history_dialog.no_sessions'),
                 font=("Arial", 12),
                 text_color="gray"
             ).pack(pady=20)
@@ -111,7 +111,7 @@ class SessionHistoryDialog(ctk.CTkToplevel):
 
         # Create viewer dialog
         viewer = ctk.CTkToplevel(self)
-        viewer.title(_translator.t('session_history.viewer_title') if _translator.t('session_history.viewer_title') != 'session_history.viewer_title' else "Session Viewer")
+        viewer.title(_translator.t('session_history_dialog.viewer_title'))
         viewer.geometry("700x600")
         viewer.resizable(True, True)
 
@@ -126,7 +126,7 @@ class SessionHistoryDialog(ctk.CTkToplevel):
         # Title
         ctk.CTkLabel(
             main_frame,
-            text=_translator.t('session_history.viewer_title') if _translator.t('session_history.viewer_title') != 'session_history.viewer_title' else "Session Viewer",
+            text=_translator.t('session_history_dialog.viewer_title'),
             font=("Arial", 16, "bold")
         ).pack(pady=(0, 15))
 
@@ -161,7 +161,7 @@ class SessionHistoryDialog(ctk.CTkToplevel):
         # Text area (read-only)
         text_label = ctk.CTkLabel(
             main_frame,
-            text=_translator.t('session_history.session_text_label') if _translator.t('session_history.session_text_label') != 'session_history.session_text_label' else "Session Text:",
+            text=_translator.t('session_history_dialog.session_text_label'),
             font=("Arial", 12, "bold")
         )
         text_label.pack(anchor="w", pady=(0, 5))
@@ -189,7 +189,7 @@ class SessionHistoryDialog(ctk.CTkToplevel):
 
             ctk.CTkButton(
                 button_frame,
-                text=_translator.t('session_history.restore_button') if _translator.t('session_history.restore_button') != 'session_history.restore_button' else "Restore to Main Window",
+                text=_translator.t('session_history_dialog.restore_session'),
                 command=restore_and_close,
                 width=180,
                 fg_color="green",
@@ -202,11 +202,11 @@ class SessionHistoryDialog(ctk.CTkToplevel):
             viewer.clipboard_append(text)
             # Show brief confirmation
             copy_btn.configure(text="✓ Copied!")
-            viewer.after(1500, lambda: copy_btn.configure(text=_translator.t('buttons.copy') if _translator.t('buttons.copy') != 'buttons.copy' else "📋 Copy"))
+            viewer.after(1500, lambda: copy_btn.configure(text=_translator.t('buttons.copy')))
 
         copy_btn = ctk.CTkButton(
             button_frame,
-            text=_translator.t('buttons.copy') if _translator.t('buttons.copy') != 'buttons.copy' else "📋 Copy",
+            text=_translator.t('buttons.copy'),
             command=copy_to_clipboard,
             width=100
         )
@@ -215,7 +215,7 @@ class SessionHistoryDialog(ctk.CTkToplevel):
         # Close button
         ctk.CTkButton(
             button_frame,
-            text=_translator.t('buttons.close') if _translator.t('buttons.close') != 'buttons.close' else "Close",
+            text=_translator.t('buttons.close'),
             command=viewer.destroy,
             width=100,
             fg_color="gray"

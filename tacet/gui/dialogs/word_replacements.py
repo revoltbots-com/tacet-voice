@@ -27,7 +27,7 @@ class WordReplacementsDialog(ctk.CTkToplevel):
         self.parent = parent
         self.config = parent.engine.config.copy()
 
-        self.title(_translator.t('word_replacements.dialog_title'))
+        self.title(_translator.t('word_replacements_dialog.title'))
         self.geometry("750x600")
         self.resizable(False, False)
 
@@ -45,7 +45,7 @@ class WordReplacementsDialog(ctk.CTkToplevel):
         # Title
         ctk.CTkLabel(
             main_frame,
-            text=_translator.t('word_replacements.title'),
+            text=_translator.t('word_replacements_dialog.title'),
             font=("Arial", 16, "bold")
         ).pack(pady=(0, 15))
 
@@ -55,7 +55,7 @@ class WordReplacementsDialog(ctk.CTkToplevel):
         )
         ctk.CTkCheckBox(
             main_frame,
-            text=_translator.t('word_replacements.enable') if _translator.t('word_replacements.enable') != 'word_replacements.enable' else "Enable word replacements",
+            text=_translator.t('word_replacements_dialog.enable'),
             variable=self.enabled_var,
             font=("Arial", 12)
         ).pack(pady=(0, 15), anchor="w")

@@ -19,7 +19,7 @@ class TemplatesDialog(ctk.CTkToplevel):
         self.parent = parent
         self.config = parent.engine.config.copy()
 
-        self.title(_translator.t('templates.dialog_title'))
+        self.title(_translator.t('templates_dialog.title'))
         self.geometry("800x600")
         self.resizable(False, False)
 
@@ -37,7 +37,7 @@ class TemplatesDialog(ctk.CTkToplevel):
         # Title
         ctk.CTkLabel(
             main_frame,
-            text=_translator.t('templates.title'),
+            text=_translator.t('templates_dialog.title'),
             font=("Arial", 16, "bold")
         ).pack(pady=(0, 15))
 
@@ -47,7 +47,7 @@ class TemplatesDialog(ctk.CTkToplevel):
         )
         ctk.CTkCheckBox(
             main_frame,
-            text=_translator.t('templates.enable') if _translator.t('templates.enable') != 'templates.enable' else "Enable templates",
+            text=_translator.t('templates_dialog.enable'),
             variable=self.enabled_var,
             font=("Arial", 12)
         ).pack(pady=(0, 15), anchor="w")
@@ -55,7 +55,7 @@ class TemplatesDialog(ctk.CTkToplevel):
         # Info label
         ctk.CTkLabel(
             main_frame,
-            text=_translator.t('templates.info_label') if _translator.t('templates.info_label') != 'templates.info_label' else "Click 'Edit' to modify template text:",
+            text=_translator.t('templates_dialog.description'),
             font=("Arial", 11),
             text_color="gray"
         ).pack(pady=(0, 10), anchor="w")
@@ -196,7 +196,7 @@ class TemplatesDialog(ctk.CTkToplevel):
 
         TextEditorDialog(
             self,
-            title=_translator.t('templates.edit_dialog_title') if _translator.t('templates.edit_dialog_title') != 'templates.edit_dialog_title' else "Edit Template Text",
+            title=_translator.t('templates_dialog.edit_title'),
             initial_text=current_text,
             on_save=on_save
         )

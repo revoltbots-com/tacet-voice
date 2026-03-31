@@ -183,14 +183,14 @@ class SettingsDialog(ctk.CTkToplevel):
         # Advanced editors section
         ctk.CTkLabel(
             tab,
-            text=_translator.t('settings.advanced_editors_label') if _translator.t('settings.advanced_editors_label') != 'settings.advanced_editors_label' else "Advanced Editors:",
+            text=_translator.t('settings.advanced_editors_label'),
             font=("Arial", 12, "bold")
         ).pack(pady=(0, 10), anchor="w")
 
         # Voice Commands editor button
         ctk.CTkButton(
             tab,
-            text=_translator.t('settings.edit_voice_commands') if _translator.t('settings.edit_voice_commands') != 'settings.edit_voice_commands' else "Edit Voice Commands...",
+            text=_translator.t('settings.edit_voice_commands'),
             command=self._open_voice_commands,
             width=200,
             fg_color="darkblue",
@@ -200,7 +200,7 @@ class SettingsDialog(ctk.CTkToplevel):
         # Word Replacements editor button
         ctk.CTkButton(
             tab,
-            text=_translator.t('settings.edit_word_replacements') if _translator.t('settings.edit_word_replacements') != 'settings.edit_word_replacements' else "Edit Word Replacements...",
+            text=_translator.t('settings.edit_word_replacements'),
             command=self._open_word_replacements,
             width=200,
             fg_color="darkblue",
@@ -210,7 +210,7 @@ class SettingsDialog(ctk.CTkToplevel):
         # Templates editor button
         ctk.CTkButton(
             tab,
-            text=_translator.t('settings.edit_templates') if _translator.t('settings.edit_templates') != 'settings.edit_templates' else "Edit Templates...",
+            text=_translator.t('settings.edit_templates'),
             command=self._open_templates,
             width=200,
             fg_color="darkblue",

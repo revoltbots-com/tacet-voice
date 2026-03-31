@@ -80,7 +80,7 @@ class EditorList(ctk.CTkFrame):
         if self.buttons_config.get('add', True) and self.on_add:
             add_btn = ctk.CTkButton(
                 toolbar,
-                text=_translator.t('buttons.add') if _translator.t('buttons.add') != 'buttons.add' else "Add",
+                text=_translator.t('buttons.add'),
                 width=80,
                 command=self.on_add
             )
@@ -90,7 +90,7 @@ class EditorList(ctk.CTkFrame):
         if self.buttons_config.get('delete', True):
             delete_btn = ctk.CTkButton(
                 toolbar,
-                text=_translator.t('buttons.delete_all') if _translator.t('buttons.delete_all') != 'buttons.delete_all' else "Delete All",
+                text=_translator.t('buttons.delete_all'),
                 width=100,
                 fg_color="darkred",
                 hover_color="red",
@@ -102,7 +102,7 @@ class EditorList(ctk.CTkFrame):
         if self.buttons_config.get('reset', True) and self.on_reset:
             reset_btn = ctk.CTkButton(
                 toolbar,
-                text=_translator.t('buttons.reset') if _translator.t('buttons.reset') != 'buttons.reset' else "Reset",
+                text=_translator.t('buttons.reset'),
                 width=80,
                 command=self.on_reset
             )

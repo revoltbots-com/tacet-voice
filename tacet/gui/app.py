@@ -541,6 +541,14 @@ class TranscriptionGUI(ctk.CTk):
 
 def main():
     """Main entry point"""
+    # Set AppUserModelID on Windows for proper taskbar icon display
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('com.revoltbots.tacet')
+        except Exception as e:
+            print(f"Warning: Could not set AppUserModelID: {e}")
+
     # Set appearance mode and theme
     ctk.set_appearance_mode("system")
     ctk.set_default_color_theme("blue")

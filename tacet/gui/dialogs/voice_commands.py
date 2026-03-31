@@ -18,7 +18,7 @@ class VoiceCommandsDialog(ctk.CTkToplevel):
         self.parent = parent
         self.config = parent.engine.config.copy()
 
-        self.title(_translator.t('voice_commands.dialog_title'))
+        self.title(_translator.t('voice_commands_dialog.title'))
         self.geometry("700x600")
         self.resizable(False, False)
 
@@ -33,14 +33,14 @@ class VoiceCommandsDialog(ctk.CTkToplevel):
         # Title
         ctk.CTkLabel(
             main_frame,
-            text=_translator.t('voice_commands.title'),
+            text=_translator.t('voice_commands_dialog.title'),
             font=("Arial", 16, "bold")
         ).pack(pady=(0, 15))
 
         # Info label
         ctk.CTkLabel(
             main_frame,
-            text=_translator.t('voice_commands.info_label') if _translator.t('voice_commands.info_label') != 'voice_commands.info_label' else "Enable or disable voice commands:",
+            text=_translator.t('voice_commands_dialog.description'),
             font=("Arial", 11),
             text_color="gray"
         ).pack(pady=(0, 10), anchor="w")

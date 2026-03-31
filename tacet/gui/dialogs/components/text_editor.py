@@ -75,7 +75,7 @@ class TextEditorDialog(ctk.CTkToplevel):
         # Label
         ctk.CTkLabel(
             main_frame,
-            text=_translator.t('templates.edit_text_label') if _translator.t('templates.edit_text_label') != 'templates.edit_text_label' else "Edit template text:",
+            text=_translator.t('templates_dialog.edit_text_label'),
             font=("Arial", 12, "bold")
         ).pack(pady=(0, 10), anchor="w")
 
