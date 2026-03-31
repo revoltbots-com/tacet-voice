@@ -227,7 +227,17 @@ class TranscriptionGUI(ctk.CTk):
             font=("Arial", 14, "bold"),
             fg_color="green"
         )
-        self.start_stop_btn.pack(fill="x", pady=(0, 5))
+        self.start_stop_btn.pack(side="left", fill="x", expand=True, pady=(0, 5), padx=(0, 5))
+
+        ctk.CTkButton(
+            button_frame,
+            text=_translator.t('buttons.clear'),
+            command=self._clear_text,
+            height=40,
+            font=("Arial", 14),
+            fg_color="gray",
+            width=100
+        ).pack(side="right", pady=(0, 5))
 
         # Transcription text area
         text_frame = ctk.CTkFrame(self)
@@ -248,7 +258,7 @@ class TranscriptionGUI(ctk.CTk):
 
         buttons = [
             (_translator.t('buttons.settings'), self._open_settings),
-            (_translator.t('buttons.sessions') if _translator.t('buttons.sessions') != 'buttons.sessions' else 'Sessions', self._open_session_history),
+            (_translator.t('buttons.sessions'), self._open_session_history),
             (_translator.t('buttons.stats'), self._open_statistics),
             (_translator.t('buttons.export'), self._open_export),
             (_translator.t('buttons.about'), self._open_about),
@@ -296,9 +306,18 @@ class TranscriptionGUI(ctk.CTk):
         else:
             self._start_dictation()
 
+    def _clear_text(self):
+        """Clear the transcription text area"""
+        self.text_area.configure(state="normal")
+        self.text_area.delete("1.0", "end")
+        self.final_text_end = "1.0"
+
     def _start_dictation(self):
         """Start dictation"""
         if self.engine:
+            # Auto-clear if enabled
+            if self.engine.config.get("behavior", {}).get("auto_clear_on_start", False):
+                self._clear_text()
             self.engine.start_listening()
 
     def _stop_dictation(self):
@@ -556,7 +575,11 @@ def main():
 
     # Create and run app
     app = TranscriptionGUI()
-    app.mainloop()
+    try:
+        app.mainloop()
+    except KeyboardInterrupt:
+        print("\nShutting down...")
+        app._on_closing()
 
 
 if __name__ == "__main__":

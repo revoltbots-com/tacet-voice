@@ -105,6 +105,19 @@ class UsageStatsTracker:
         # Save stats
         self._save_stats()
 
+    def reset(self):
+        """Reset all statistics to defaults."""
+        self.stats = {
+            "total_words": 0,
+            "total_chars": 0,
+            "total_sessions": 0,
+            "total_time_seconds": 0,
+            "sessions": []
+        }
+        self.session_words = 0
+        self.session_chars = 0
+        self._save_stats()
+
     def get_stats(self) -> dict:
         """
         Get current statistics.

@@ -187,6 +187,16 @@ class SettingsDialog(ctk.CTkToplevel):
             variable=self.clipboard_var
         ).pack(pady=10, anchor="w")
 
+        # Auto-clear on start
+        self.auto_clear_var = ctk.BooleanVar(
+            value=self.config.get('behavior', {}).get('auto_clear_on_start', False)
+        )
+        ctk.CTkCheckBox(
+            tab,
+            text=_translator.t('settings.auto_clear_on_start'),
+            variable=self.auto_clear_var
+        ).pack(pady=10, anchor="w")
+
         # Separator
         ctk.CTkLabel(
             tab,
@@ -285,6 +295,7 @@ class SettingsDialog(ctk.CTkToplevel):
         self.config['local']['language'] = self.lang_var.get()
         self.config['audio']['sample_rate'] = int(self.sr_var.get())
         self.config['behavior']['stop_on_any_keypress'] = self.stop_on_keypress_var.get()
+        self.config['behavior']['auto_clear_on_start'] = self.auto_clear_var.get()
         self.config['typing']['add_trailing_space'] = self.add_space_var.get()
         self.config['typing']['remove_trailing_period'] = self.remove_period_var.get()
         self.config['clipboard']['enabled'] = self.clipboard_var.get()

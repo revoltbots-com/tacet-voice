@@ -5,6 +5,7 @@ View and restore previous transcription sessions.
 """
 
 import customtkinter as ctk
+from tkinter import messagebox
 from tacet.gui.core.translation import get_translator
 from tacet.gui.utils.icons import set_dialog_icon
 
@@ -44,29 +45,56 @@ class SessionHistoryDialog(ctk.CTkToplevel):
         ).pack(pady=(0, 15))
 
         # Sessions list
-        scroll_frame = ctk.CTkScrollableFrame(main_frame, height=350)
-        scroll_frame.pack(fill="both", expand=True, pady=(0, 15))
+        self.scroll_frame = ctk.CTkScrollableFrame(main_frame, height=350)
+        self.scroll_frame.pack(fill="both", expand=True, pady=(0, 15))
 
-        # Load sessions
-        if hasattr(parent.engine, 'session_history'):
-            sessions = parent.engine.session_history.load_sessions()
-            for session in sessions:
-                self._create_session_row(scroll_frame, session)
+        self._load_sessions()
+
+        # Bottom buttons
+        button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
+        button_frame.pack(fill="x")
+
+        ctk.CTkButton(
+            button_frame,
+            text=_translator.t('session_history_dialog.clear_all'),
+            command=self._clear_all,
+            width=120,
+            fg_color="red",
+            hover_color="darkred"
+        ).pack(side="left", padx=5)
+
+        ctk.CTkButton(
+            button_frame,
+            text=_translator.t('buttons.close'),
+            command=self.destroy,
+            width=100
+        ).pack(side="right", padx=5)
+
+    def _load_sessions(self):
+        """Load and display sessions"""
+        # Clear existing rows
+        for widget in self.scroll_frame.winfo_children():
+            widget.destroy()
+
+        if hasattr(self.parent.engine, 'session_history'):
+            sessions = self.parent.engine.session_history.load_sessions()
+            if sessions:
+                for session in sessions:
+                    self._create_session_row(self.scroll_frame, session)
+            else:
+                ctk.CTkLabel(
+                    self.scroll_frame,
+                    text=_translator.t('session_history_dialog.no_sessions'),
+                    font=("Arial", 12),
+                    text_color="gray"
+                ).pack(pady=20)
         else:
             ctk.CTkLabel(
-                scroll_frame,
+                self.scroll_frame,
                 text=_translator.t('session_history_dialog.no_sessions'),
                 font=("Arial", 12),
                 text_color="gray"
             ).pack(pady=20)
-
-        # Close button
-        ctk.CTkButton(
-            main_frame,
-            text=_translator.t('buttons.close'),
-            command=self.destroy,
-            width=100
-        ).pack()
 
     def _create_session_row(self, parent, session):
         """Create a row for a session"""
@@ -93,17 +121,53 @@ class SessionHistoryDialog(ctk.CTkToplevel):
             text_color="gray"
         ).pack(anchor="w")
 
+        # Delete button
+        ctk.CTkButton(
+            frame,
+            text=_translator.t('session_history_dialog.delete_session'),
+            command=lambda s=session: self._delete_session(s),
+            width=70,
+            fg_color="red",
+            hover_color="darkred"
+        ).pack(side="right", padx=5)
+
         # View button
         ctk.CTkButton(
             frame,
             text="View",
-            command=lambda: self._view_session(session),
+            command=lambda s=session: self._view_session(s),
             width=80
         ).pack(side="right", padx=5)
 
+    def _delete_session(self, session):
+        """Delete a single session"""
+        filename = session.get('filename')
+        if not filename:
+            return
+
+        timestamp = session.get('timestamp', 'Unknown')
+        confirm = messagebox.askyesno(
+            _translator.t('session_history_dialog.confirm_delete'),
+            _translator.t('session_history_dialog.confirm_delete_msg', date=timestamp),
+            parent=self
+        )
+        if confirm and hasattr(self.parent.engine, 'session_history'):
+            self.parent.engine.session_history.delete_session(filename)
+            self._load_sessions()
+
+    def _clear_all(self):
+        """Clear all sessions"""
+        confirm = messagebox.askyesno(
+            _translator.t('session_history_dialog.confirm_clear_all'),
+            _translator.t('session_history_dialog.confirm_clear_all_msg'),
+            parent=self
+        )
+        if confirm and hasattr(self.parent.engine, 'session_history'):
+            self.parent.engine.session_history.clear_all()
+            self._load_sessions()
+
     def _view_session(self, session):
         """View session text in popup dialog"""
-        # Extract session data
         text = session.get('text', '')
         timestamp = session.get('timestamp', 'Unknown')
         word_count = session.get('word_count', 0)
@@ -134,21 +198,18 @@ class SessionHistoryDialog(ctk.CTkToplevel):
         metadata_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
         metadata_frame.pack(fill="x", pady=(0, 15))
 
-        # Date
         ctk.CTkLabel(
             metadata_frame,
             text=f"Date: {timestamp}",
             font=("Arial", 11)
         ).pack(anchor="w", pady=2)
 
-        # Word count
         ctk.CTkLabel(
             metadata_frame,
             text=f"Words: {word_count}",
             font=("Arial", 11)
         ).pack(anchor="w", pady=2)
 
-        # Duration (if available)
         if duration > 0:
             minutes = int(duration // 60)
             seconds = int(duration % 60)
@@ -172,16 +233,13 @@ class SessionHistoryDialog(ctk.CTkToplevel):
             wrap="word"
         )
         text_box.pack(fill="both", expand=True, pady=(0, 15))
-
-        # Insert session text
         text_box.insert("1.0", text)
-        text_box.configure(state="disabled")  # Make read-only
+        text_box.configure(state="disabled")
 
         # Button frame
         button_frame = ctk.CTkFrame(main_frame, fg_color="transparent")
         button_frame.pack(fill="x")
 
-        # Restore to main window button
         if self.restore_callback:
             def restore_and_close():
                 self.restore_callback(text)
@@ -196,12 +254,10 @@ class SessionHistoryDialog(ctk.CTkToplevel):
                 hover_color="darkgreen"
             ).pack(side="left", padx=5)
 
-        # Copy to clipboard button
         def copy_to_clipboard():
             viewer.clipboard_clear()
             viewer.clipboard_append(text)
-            # Show brief confirmation
-            copy_btn.configure(text="✓ Copied!")
+            copy_btn.configure(text="Copied!")
             viewer.after(1500, lambda: copy_btn.configure(text=_translator.t('buttons.copy')))
 
         copy_btn = ctk.CTkButton(
@@ -212,7 +268,6 @@ class SessionHistoryDialog(ctk.CTkToplevel):
         )
         copy_btn.pack(side="left", padx=5)
 
-        # Close button
         ctk.CTkButton(
             button_frame,
             text=_translator.t('buttons.close'),

@@ -47,7 +47,8 @@
       "reset": "Reset to Defaults",
       "add": "Add",
       "delete_all": "Delete All",
-      "save_changes": "Save Changes"
+      "save_changes": "Save Changes",
+      "sessions": "Sessions"
     },
     "shortcuts": {
       "dialog_title": "Keyboard Shortcuts",
@@ -185,6 +186,7 @@
       "debug_levels": "Debug audio levels",
       "clipboard_label": "Clipboard:",
       "clipboard_enabled": "Enable clipboard",
+      "auto_clear_on_start": "Clear text area when dictation starts",
       "clipboard_copy": "Copy to clipboard",
       "clipboard_replace": "Replace clipboard each time",
       "clipboard_append": "Append to clipboard",
@@ -363,7 +365,11 @@
       "avg_words": "Avg Words/Session:",
       "recent_sessions": "Recent Sessions:",
       "no_sessions": "No sessions recorded yet",
-      "session_info": "{date} • {words} words • {duration}s"
+      "session_info": "{date} • {words} words • {duration}s",
+      "hours": "hours",
+      "reset_stats": "Reset Statistics",
+      "reset_confirm": "Are you sure you want to reset all usage statistics?",
+      "reset_done": "Statistics have been reset."
     },
     "about": {
       "dialog_title": "About",
@@ -430,7 +436,8 @@
       "reset": "Restaurar Valores",
       "add": "Agregar",
       "delete_all": "Eliminar Todo",
-      "save_changes": "Guardar Cambios"
+      "save_changes": "Guardar Cambios",
+      "sessions": "Sesiones"
     },
     "shortcuts": {
       "dialog_title": "Atajos de Teclado",
@@ -730,7 +737,11 @@
       "avg_words": "Promedio Palabras/Sesión:",
       "recent_sessions": "Sesiones Recientes:",
       "no_sessions": "Aún no hay sesiones registradas",
-      "session_info": "{date} • {words} palabras • {duration}s"
+      "session_info": "{date} • {words} palabras • {duration}s",
+      "hours": "horas",
+      "reset_stats": "Restablecer Estadísticas",
+      "reset_confirm": "¿Estás seguro de que quieres restablecer todas las estadísticas de uso?",
+      "reset_done": "Las estadísticas han sido restablecidas."
     },
     "about": {
       "dialog_title": "Acerca de",
@@ -797,6 +808,7 @@
       "reset": "Réinitialiser",
       "add": "Ajouter",
       "delete_all": "Tout Supprimer",
+      "sessions": "Sessions",
       "save_changes": "Sauvegarder"
     },
     "shortcuts": {
@@ -1097,7 +1109,11 @@
       "avg_words": "Moyenne Mots/Session:",
       "recent_sessions": "Sessions Récentes:",
       "no_sessions": "Aucune session enregistrée",
-      "session_info": "{date} • {words} mots • {duration}s"
+      "session_info": "{date} • {words} mots • {duration}s",
+      "hours": "heures",
+      "reset_stats": "Réinitialiser les Statistiques",
+      "reset_confirm": "Êtes-vous sûr de vouloir réinitialiser toutes les statistiques d'utilisation ?",
+      "reset_done": "Les statistiques ont été réinitialisées."
     },
     "about": {
       "dialog_title": "À propos",
@@ -1164,6 +1180,7 @@
       "reset": "Zurücksetzen",
       "add": "Hinzufügen",
       "delete_all": "Alle Löschen",
+      "sessions": "Sitzungen",
       "save_changes": "Änderungen Speichern"
     },
     "shortcuts": {
@@ -1464,7 +1481,11 @@
       "avg_words": "Durchschn. Wörter/Sitzung:",
       "recent_sessions": "Letzte Sitzungen:",
       "no_sessions": "Noch keine Sitzungen aufgezeichnet",
-      "session_info": "{date} • {words} Wörter • {duration}s"
+      "session_info": "{date} • {words} Wörter • {duration}s",
+      "hours": "Stunden",
+      "reset_stats": "Statistiken Zurücksetzen",
+      "reset_confirm": "Sind Sie sicher, dass Sie alle Nutzungsstatistiken zurücksetzen möchten?",
+      "reset_done": "Statistiken wurden zurückgesetzt."
     },
     "about": {
       "dialog_title": "Über",

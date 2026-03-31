@@ -28,7 +28,7 @@ class AboutDialog(ctk.CTkToplevel):
         github = app_info.get("github", "https://github.com/revoltbots-com/tacet-voice")
 
         self.title(_translator.t('about.dialog_title'))
-        self.geometry("450x480")
+        self.geometry("450x600")
         self.resizable(False, False)
 
         # Set window icon
@@ -176,9 +176,9 @@ class AboutDialog(ctk.CTkToplevel):
                 return
 
             pil_image = Image.open(logo_path)
-            pil_image = pil_image.resize((48, 48), Image.Resampling.LANCZOS)
+            pil_image = pil_image.resize((64, 64), Image.Resampling.LANCZOS)
 
-            ctk_image = ctk.CTkImage(light_image=pil_image, dark_image=pil_image, size=(48, 48))
+            ctk_image = ctk.CTkImage(light_image=pil_image, dark_image=pil_image, size=(64, 64))
 
             logo_label = ctk.CTkLabel(parent_frame, image=ctk_image, text="", cursor="hand2")
             logo_label.pack(pady=(5, 5))

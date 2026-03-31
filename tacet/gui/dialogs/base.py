@@ -40,6 +40,9 @@ class BaseDialog(ctk.CTkToplevel):
         self.transient(parent)
         self.grab_set()
 
+        # Escape closes dialog
+        self.bind("<Escape>", lambda e: self.destroy())
+
         # Center on parent
         self.center_on_parent(parent)
 

@@ -138,13 +138,49 @@ class DictationEngine:
         self.deepgram_engine = None
 
         if engine_name == "local":
-            self._log(f"Loading local model: {local_cfg.get('model', 'tiny')} ...")
+            requested_model = local_cfg.get("model", "tiny")
+            self._log(f"Loading local model: {requested_model} ...")
             self.local_engine = LocalEngine(
-                model_name=local_cfg.get("model", "tiny"),
+                model_name=requested_model,
                 device=local_cfg.get("device", "cpu"),
                 compute_type=local_cfg.get("compute_type", "int8"),
             )
             self.local_cfg = local_cfg
+
+            # Speed test on startup: if model is too slow, fall back to tiny
+            if requested_model not in ("tiny",):
+                self._log(f"Running speed test for {requested_model} ...")
+                silence = np.zeros(int(audio_cfg.get("sample_rate", 48000)), dtype=np.float32)
+                test_wav = write_wav(silence, int(audio_cfg.get("sample_rate", 48000)))
+                t0 = time.time()
+                try:
+                    self.local_engine.transcribe(
+                        test_wav,
+                        language=local_cfg.get("language", None),
+                        task=local_cfg.get("task", "transcribe"),
+                    )
+                finally:
+                    try:
+                        os.remove(test_wav)
+                    except OSError:
+                        pass
+                elapsed = time.time() - t0
+                self._log(f"Speed test: {elapsed:.1f}s for 1s audio")
+
+                if elapsed > 5.0:
+                    self._log(f"Model '{requested_model}' too slow ({elapsed:.1f}s), falling back to tiny")
+                    self.local_engine = LocalEngine(
+                        model_name="tiny",
+                        device=local_cfg.get("device", "cpu"),
+                        compute_type=local_cfg.get("compute_type", "int8"),
+                    )
+                    local_cfg["model"] = "tiny"
+                    self.config["local"]["model"] = "tiny"
+                    try:
+                        with open(self.config_path, "w", encoding="utf-8") as f:
+                            json.dump(self.config, f, indent=2)
+                    except Exception:
+                        pass
         elif engine_name == "openai":
             env_name = openai_cfg.get("api_key_env", "OPENAI_API_KEY")
             api_key = os.environ.get(env_name)
@@ -182,6 +218,12 @@ class DictationEngine:
         self.applied_seq = 0
         self.preview_len = 0
         self._last_preview_text = ""
+        self._stopped = False
+
+        # Dictation loop state (shared so _stop_dictation can flush)
+        self._speaking = False
+        self._blocks = []
+        self._blocks_lock = threading.Lock()
 
         # Queues
         self.audio_q: "queue.Queue[np.ndarray]" = queue.Queue(maxsize=600)
@@ -384,6 +426,8 @@ class DictationEngine:
         while True:
             utt_id, seq, is_final, wav_path = self.tx_q.get()
             try:
+                kind = "FINAL" if is_final else "partial"
+                self._log(f"[TX] Got {kind} utt={utt_id} seq={seq}")
                 self._call_callback('on_status_change', 'transcribing')
 
                 # Transcribe
@@ -405,6 +449,7 @@ class DictationEngine:
                     )
 
                 if not text:
+                    self._log(f"[TX] Empty result, skipping")
                     continue
 
                 with self.state_lock:
@@ -412,9 +457,15 @@ class DictationEngine:
 
                 # Stale result? Discard
                 if utt_id != live_utt:
+                    self._log(f"[TX] Stale: utt={utt_id} != live={live_utt}, discarding")
                     continue
 
                 if not is_final:
+                    # Don't apply partials after dictation stopped
+                    if self._stopped:
+                        self._log(f"[TX] Stopped, discarding partial")
+                        continue
+
                     with self.state_lock:
                         if seq <= self.applied_seq:
                             continue
@@ -423,6 +474,7 @@ class DictationEngine:
                     if self.live_enabled:
                         self._apply_live_text(text)
                 else:
+                    self._log(f"[TX] Committing final: '{text[:50]}'")
                     self._commit_final_text(text)
 
                     # Update status back to listening if still active
@@ -451,9 +503,7 @@ class DictationEngine:
 
         preroll = deque(maxlen=max(1, int((self.preroll_ms / 1000.0) * self.sr / block_len)))
 
-        speaking = False
         silence_count = 0
-        blocks = []
 
         min_samples = int(self.sr * (self.min_chunk_ms / 1000.0))
         silence_samples_needed = int(self.sr * (self.silence_ms / 1000.0))
@@ -489,10 +539,11 @@ class DictationEngine:
 
                 if rms >= self.energy_threshold:
                     self.last_voice_time = time.time()
-                    if not speaking:
-                        speaking = True
+                    if not self._speaking:
+                        self._speaking = True
                         silence_count = 0
-                        blocks = list(preroll)
+                        with self._blocks_lock:
+                            self._blocks = list(preroll)
 
                         with self.state_lock:
                             self.current_utt_id += 1
@@ -502,14 +553,16 @@ class DictationEngine:
                         self.preview_len = 0
                         last_update = time.time()
 
-                    blocks.append(x)
+                    with self._blocks_lock:
+                        self._blocks.append(x)
 
                     # Partial update
                     if self.live_enabled and (time.time() - last_update) >= update_interval_sec:
                         last_update = time.time()
 
                         max_blocks = int((self.max_partial_seconds * self.sr) / block_len)
-                        recent = blocks[-max_blocks:] if max_blocks > 0 else blocks
+                        with self._blocks_lock:
+                            recent = self._blocks[-max_blocks:] if max_blocks > 0 else list(self._blocks)
                         samples = np.concatenate(recent, axis=0)
 
                         if len(samples) >= min_samples:
@@ -521,17 +574,19 @@ class DictationEngine:
                             self.tx_q.put((utt_id, seq, False, wav))
 
                 else:
-                    if speaking:
-                        blocks.append(x)
+                    if self._speaking:
+                        with self._blocks_lock:
+                            self._blocks.append(x)
                         silence_count += len(x)
 
                         # Silence ended the utterance
                         if silence_count >= silence_samples_needed:
-                            speaking = False
+                            self._speaking = False
                             silence_count = 0
 
-                            samples = np.concatenate(blocks, axis=0) if blocks else np.array([], dtype=np.float32)
-                            blocks = []
+                            with self._blocks_lock:
+                                samples = np.concatenate(self._blocks, axis=0) if self._blocks else np.array([], dtype=np.float32)
+                                self._blocks = []
 
                             if len(samples) >= min_samples:
                                 wav = write_wav(samples, self.sr)
@@ -572,9 +627,29 @@ class DictationEngine:
             self.listening.clear()
             self.last_toggle_time = time.time()
 
-            # Commit any pending preview as final text so replacements run
-            if self._last_preview_text:
-                self._log("Committing pending preview on stop")
+            # Block new partials from tx_workers but let finals through
+            self._stopped = True
+
+            # Flush any pending audio blocks as a final transcription
+            with self._blocks_lock:
+                pending_blocks = list(self._blocks)
+                self._blocks = []
+            self._speaking = False
+
+            if pending_blocks:
+                samples = np.concatenate(pending_blocks, axis=0)
+                min_samples = int(self.sr * (self.min_chunk_ms / 1000.0))
+                if len(samples) >= min_samples:
+                    self._log(f"[STOP] Flushing {len(samples)} audio samples as final")
+                    wav = write_wav(samples, self.sr)
+                    with self.state_lock:
+                        utt_id = self.current_utt_id
+                        self.current_seq += 1
+                        seq = self.current_seq
+                    self.tx_q.put((utt_id, seq, True, wav))
+            elif self._last_preview_text:
+                # No audio blocks but we have a preview — commit it
+                self._log(f"[STOP] Committing preview: '{self._last_preview_text[:50]}'")
                 self._commit_final_text(self._last_preview_text)
 
             # Reset session tracking for next session
@@ -598,6 +673,7 @@ class DictationEngine:
                 break
 
         self.preview_len = 0
+        self._stopped = False
         self.last_voice_time = time.time()
         self.listening.set()
         self.last_toggle_time = time.time()
@@ -740,6 +816,7 @@ class DictationEngine:
 
         Raises on failure so the caller can revert config.
         The old local_engine is preserved if the new one fails to load.
+        Runs a speed test after loading — raises if too slow for real-time.
         """
         if self.local_engine is None:
             return
@@ -757,6 +834,33 @@ class DictationEngine:
                 device=self.local_cfg.get("device", "cpu"),
                 compute_type=self.local_cfg.get("compute_type", "int8"),
             )
+
+            # Speed test: transcribe 1 second of silence, must complete in < 5s
+            self._log(f"Running speed test for {model_name} ...")
+            silence = np.zeros(self.sr, dtype=np.float32)  # 1 second
+            test_wav = write_wav(silence, self.sr)
+            t0 = time.time()
+            try:
+                new_engine.transcribe(
+                    test_wav,
+                    language=self.local_cfg.get("language", None),
+                    task=self.local_cfg.get("task", "transcribe"),
+                )
+            finally:
+                try:
+                    os.remove(test_wav)
+                except OSError:
+                    pass
+            elapsed = time.time() - t0
+            self._log(f"Speed test: {elapsed:.1f}s for 1s audio")
+
+            if elapsed > 5.0:
+                raise RuntimeError(
+                    f"Model '{model_name}' is too slow for real-time dictation "
+                    f"({elapsed:.1f}s to transcribe 1s of audio). "
+                    f"Use 'tiny' or 'base' on CPU, or switch to CUDA."
+                )
+
             # Only replace engine on success
             self.local_engine = new_engine
 

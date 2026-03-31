@@ -136,3 +136,23 @@ class SessionHistoryManager:
         except Exception as e:
             print(f"Warning: Could not delete session: {e}")
         return False
+
+    def clear_all(self) -> int:
+        """
+        Delete all saved sessions.
+
+        Returns:
+            Number of sessions deleted
+        """
+        if not os.path.exists(self.save_path):
+            return 0
+
+        count = 0
+        try:
+            for filename in os.listdir(self.save_path):
+                if filename.endswith('.json'):
+                    os.remove(os.path.join(self.save_path, filename))
+                    count += 1
+        except Exception as e:
+            print(f"Warning: Could not clear all sessions: {e}")
+        return count
