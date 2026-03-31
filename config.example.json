@@ -1,0 +1,104 @@
+{
+  "app": {
+    "name": "Tacet",
+    "version": "2.0.0",
+    "author": "RevoltBots.com",
+    "website": "https://revoltbots.com/products/tacet?ref=app-tacet",
+    "github": "https://github.com/revoltbots-com/tacet-voice"
+  },
+  "hotkey": "ctrl+shift+d",
+  "engine": "local",
+  "local": {
+    "model": "tiny",
+    "device": "cpu",
+    "compute_type": "int8",
+    "language": null,
+    "task": "transcribe"
+  },
+  "openai": {
+    "base_url": "https://api.openai.com/v1",
+    "model": "whisper-1",
+    "api_key_env": "OPENAI_API_KEY",
+    "language": null
+  },
+  "audio": {
+    "sample_rate": 48000,
+    "channels": 1,
+    "sound_device": null,
+    "sound_device_name": ""
+  },
+  "typing": {
+    "add_trailing_space": true,
+    "remove_trailing_period": false,
+    "per_key_delay_sec": 0.0
+  },
+  "behavior": {
+    "stop_on_any_keypress": false,
+    "hotkey_guard_sec": 2.0,
+    "debug_levels": false,
+    "list_devices_on_start": true
+  },
+  "continuous": {
+    "silence_ms": 1200,
+    "min_chunk_ms": 250,
+    "energy_threshold": 0.0015,
+    "preroll_ms": 300,
+    "idle_timeout_sec": 90
+  },
+  "live": {
+    "enabled": true,
+    "update_interval_ms": 900,
+    "max_preview_chars": 400,
+    "max_partial_seconds": 8.0
+  },
+  "gui": {
+    "window_width": 650,
+    "window_height": 600,
+    "theme": "light",
+    "font_size": 11,
+    "auto_start": false,
+    "minimize_to_tray": true
+  },
+  "clipboard": {
+    "enabled": true,
+    "mode": "replace"
+  },
+  "voice_commands": {
+    "enabled": true,
+    "commands": {
+      "period": {"type": "type_char", "char": ".", "enabled": true},
+      "comma": {"type": "type_char", "char": ",", "enabled": true},
+      "question mark": {"type": "type_char", "char": "?", "enabled": true},
+      "exclamation mark": {"type": "type_char", "char": "!", "enabled": true},
+      "exclamation point": {"type": "type_char", "char": "!", "enabled": true},
+      "colon": {"type": "type_char", "char": ":", "enabled": true},
+      "semicolon": {"type": "type_char", "char": ";", "enabled": true},
+      "quote": {"type": "type_char", "char": "\"", "enabled": true},
+      "apostrophe": {"type": "type_char", "char": "'", "enabled": true},
+      "dash": {"type": "type_char", "char": "-", "enabled": true},
+      "hyphen": {"type": "type_char", "char": "-", "enabled": true},
+      "open paren": {"type": "type_char", "char": "(", "enabled": true},
+      "close paren": {"type": "type_char", "char": ")", "enabled": true},
+      "open bracket": {"type": "type_char", "char": "[", "enabled": true},
+      "close bracket": {"type": "type_char", "char": "]", "enabled": true},
+      "new line": {"type": "press_key", "key": "enter", "enabled": true},
+      "new paragraph": {"type": "press_key", "key": "enter", "enabled": true},
+      "tab": {"type": "press_key", "key": "tab", "enabled": true},
+      "delete that": {"type": "delete_word", "enabled": true},
+      "scratch that": {"type": "delete_word", "enabled": true},
+      "delete line": {"type": "delete_line", "enabled": true}
+    }
+  },
+  "custom_replacements": {
+    "enabled": false,
+    "case_sensitive": false,
+    "replacements": {
+      "btw": "by the way",
+      "omg": "oh my god",
+      "asap": "as soon as possible",
+      "fyi": "for your information",
+      "imo": "in my opinion",
+      "imho": "in my humble opinion"
+    }
+  }
+}
