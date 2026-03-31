@@ -370,7 +370,7 @@ class DictationEngine:
             self.session_history.save_session(full_text, metadata)
 
         self._log(f"✅ {final_text}")
-        self._call_callback('on_final_text', final_text)
+        self._call_callback('on_final_text', out)
 
     def _tx_worker(self):
         """Transcription worker thread"""
@@ -538,7 +538,7 @@ class DictationEngine:
 
     def _on_keypress(self, key):
         """Keyboard listener for stop-on-keypress"""
-        if not self.listening.is_set():
+        if not self.stop_on_any_keypress or not self.listening.is_set():
             return
 
         now = time.time()
@@ -658,22 +658,55 @@ class DictationEngine:
 
     def update_config(self, new_config: dict):
         """Update configuration and reload engine"""
+        prev_stop_on_any_keypress = self.stop_on_any_keypress
+        previous_model = self.local_cfg.get("model") if hasattr(self, "local_cfg") else None
+
         self.config = new_config
         self._save_config()
 
+        self.local_cfg = new_config.get("local", self.local_cfg)
+        self.openai_cfg = new_config.get("openai", getattr(self, "openai_cfg", {}))
+        self.deepgram_cfg = new_config.get("deepgram", getattr(self, "deepgram_cfg", {}))
+        self.typing_cfg = new_config.get("typing", self.typing_cfg)
+
+        behavior_cfg = new_config.get("behavior", {})
+        clipboard_cfg = new_config.get("clipboard", {})
         cont_cfg = new_config.get("continuous", {})
         live_cfg = new_config.get("live", {})
 
+        self.stop_on_any_keypress = bool(behavior_cfg.get("stop_on_any_keypress", self.stop_on_any_keypress))
+        self.clipboard_enabled = bool(clipboard_cfg.get("enabled", self.clipboard_enabled))
+        self.clipboard_mode = clipboard_cfg.get("mode", self.clipboard_mode)
+        self.hotkey_guard_sec = float(behavior_cfg.get("hotkey_guard_sec", self.hotkey_guard_sec))
+        self.debug_levels = bool(behavior_cfg.get("debug_levels", self.debug_levels))
         self.silence_ms = int(cont_cfg.get("silence_ms", 450))
         self.min_chunk_ms = int(cont_cfg.get("min_chunk_ms", 250))
         self.energy_threshold = float(cont_cfg.get("energy_threshold", 0.003))
         self.preroll_ms = int(cont_cfg.get("preroll_ms", 250))
+        self.idle_timeout_sec = float(cont_cfg.get("idle_timeout_sec", self.idle_timeout_sec))
+        self.live_enabled = bool(live_cfg.get("enabled", self.live_enabled))
         self.update_interval_ms = int(live_cfg.get("update_interval_ms", 900))
+        self.max_preview_chars = int(live_cfg.get("max_preview_chars", self.max_preview_chars))
+        self.max_partial_seconds = float(live_cfg.get("max_partial_seconds", self.max_partial_seconds))
+
+        self.voice_processor = VoiceCommandProcessor(new_config.get("voice_commands", {}))
+        self.auto_punct_processor = AutoPunctuationProcessor(new_config.get("auto_punctuation", {}))
+        self.timestamp_processor = TimestampProcessor(new_config.get("timestamps", {}))
+        self.template_processor = TemplateProcessor(new_config.get("templates", {}))
 
         # Reload text replacement processor with the updated config
         self.replacement_processor = TextReplacementProcessor(
             self._build_replacements_config(new_config)
         )
+
+        here = os.path.dirname(os.path.abspath(self.config_path))
+        self.session_history = SessionHistoryManager(new_config.get("session_history", {}), here)
+
+        if self.local_engine and self.local_cfg.get("model", previous_model) != previous_model:
+            self.reload_model(self.local_cfg.get("model", previous_model))
+
+        if self.stop_on_any_keypress and not prev_stop_on_any_keypress:
+            keyboard.Listener(on_press=self._on_keypress, suppress=False).start()
 
         self._log("Configuration updated")
 

@@ -453,8 +453,8 @@ class TranscriptionGUI(ctk.CTk):
         # Delete preview: everything from final_text_end to end
         self.text_area.delete(self.final_text_end, "end")
 
-        # Insert final text (black, no tag) with trailing space
-        self.text_area.insert("end", text + " ")
+        # Insert the exact final text emitted by the engine
+        self.text_area.insert("end", text)
 
         # Update boundary marker to end of final text
         self.final_text_end = self.text_area.index("end-1c")

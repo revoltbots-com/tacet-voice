@@ -22,10 +22,41 @@ LANGUAGES = {
 
 
 class WordReplacementsDialog(ctk.CTkToplevel):
+    @staticmethod
+    def _normalize_word_replacements_config(config):
+        """Ensure the GUI config exists and migrate legacy replacements if needed."""
+        word_cfg = config.setdefault('word_replacements', {})
+        legacy_cfg = config.get('custom_replacements', {})
+        default_lang = config.get('local', {}).get('language') or 'en'
+
+        if default_lang not in LANGUAGES:
+            default_lang = 'en'
+
+        word_cfg.setdefault('enabled', legacy_cfg.get('enabled', False))
+        word_cfg.setdefault('case_sensitive', legacy_cfg.get('case_sensitive', False))
+
+        dictionaries = word_cfg.setdefault('dictionaries', {})
+        for lang_code in LANGUAGES:
+            lang_cfg = dictionaries.setdefault(lang_code, {})
+            lang_cfg.setdefault('enabled', False)
+            lang_cfg.setdefault('replacements', {})
+
+        legacy_replacements = legacy_cfg.get('replacements', {})
+        has_existing_replacements = any(
+            bool(dictionaries[lang_code].get('replacements'))
+            for lang_code in LANGUAGES
+        )
+        if isinstance(legacy_replacements, dict) and legacy_replacements and not has_existing_replacements:
+            dictionaries[default_lang]['replacements'] = legacy_replacements.copy()
+            dictionaries[default_lang]['enabled'] = bool(legacy_cfg.get('enabled', True))
+
+        return word_cfg
+
     def __init__(self, parent):
         super().__init__(parent)
         self.parent = parent
         self.config = parent.engine.config.copy()
+        self._normalize_word_replacements_config(self.config)
 
         self.title(_translator.t('word_replacements_dialog.title'))
         self.geometry("750x600")
@@ -218,6 +249,8 @@ class WordReplacementsDialog(ctk.CTkToplevel):
 
     def _save(self):
         """Save word replacements configuration"""
+        self._normalize_word_replacements_config(self.config)
+
         # Update global enabled flag
         self.config['word_replacements']['enabled'] = self.enabled_var.get()
 
