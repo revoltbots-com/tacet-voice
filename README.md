@@ -97,5 +97,5 @@ Tacet builds on solid open-source work:
 <p align="center">
   <img src="assets/revoltbots.png" alt="Revolt Bots" width="80">
   <br>
-  by <a href="https://revoltbots.com/products/tacet?ref=gh-tacet">RevoltBots.com</a>
+  by <a href="https://revoltbots.com/en/products/tacet?ref=gh-tacet">RevoltBots.com</a>
 </p>

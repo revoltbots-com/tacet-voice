@@ -24,7 +24,7 @@ class AboutDialog(ctk.CTkToplevel):
         app_name = app_info.get("name", "Tacet")
         version = app_info.get("version", "1.0.0")
         author = app_info.get("author", "RevoltBots.com")
-        website = app_info.get("website", "https://revoltbots.com/products/tacet?ref=app-tacet")
+        website = app_info.get("website", "https://revoltbots.com/en/products/tacet?ref=app-tacet")
         github = app_info.get("github", "https://github.com/revoltbots-com/tacet-voice")
 
         self.title(_translator.t('about.dialog_title'))
